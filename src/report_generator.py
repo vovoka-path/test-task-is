@@ -1,91 +1,105 @@
-from typing import List, Any, Dict
-from jinja2 import Environment, FileSystemLoader
+"""Модуль для генерации HTML-отчетов с использованием шаблонизатора Jinja2."""
+
+import logging
 from pathlib import Path
+from typing import List
+from src.data_models import Chunk
 
-from src.chunk import Chunk
+import jinja2
+from jinja2 import Environment, FileSystemLoader
 
 
-class ReportGenerator:
+def generate_report(chunks: List[Chunk], template_path: str, output_path: str) -> None:
     """
-    Класс для генерации HTML-отчетов из списка чанков.
+    Генерирует HTML-отчет на основе списка чанков и шаблона Jinja2.
     
-    Класс отвечает за загрузку Jinja2 шаблона и рендеринг 
-    HTML-отчета на основе переданного списка чанков.
+    Функция загружает HTML-шаблон из указанного файла, рендерит его с данными
+    о чанках и сохраняет результат в выходной файл. Автоматически создает
+    необходимые директории для выходного файла.
+    
+    Args:
+        chunks (List[Chunk]): Список объектов Chunk для включения в отчет.
+        template_path (str): Путь к HTML-шаблону Jinja2.
+        output_path (str): Путь для сохранения сгенерированного HTML-отчета.
+        
+    Raises:
+        FileNotFoundError: Если шаблон не найден по указанному пути.
+        PermissionError: При отсутствии прав на запись в выходной файл.
+        jinja2.TemplateError: При ошибках в шаблоне или его рендеринге.
+        OSError: При проблемах с файловой системой.
+        
+    Example:
+        >>> chunks = [Chunk(content="Текст", metadata={"context": "Глава 1"})]
+        >>> generate_report(chunks, "templates/report.html", "output/report.html")
     """
+    logger = logging.getLogger(__name__)
     
-    def __init__(self) -> None:
-        """Инициализация генератора отчетов."""
-        self.jinja_env = None
+    # Проверяем существование шаблона
+    template_file = Path(template_path)
+    if not template_file.exists():
+        error_msg = f"Шаблон не найден: {template_path}"
+        logger.error(error_msg)
+        raise FileNotFoundError(error_msg)
     
-    def _setup_jinja_environment(self, template_path: str) -> Environment:
-        """
-        Настройка окружения Jinja2 для работы с шаблонами.
-        
-        Args:
-            template_path: Путь к директории с шаблонами
-            
-        Returns:
-            Environment: Настроенное окружение Jinja2
-            
-        Raises:
-            FileNotFoundError: Если директория с шаблонами не найдена
-        """
-        template_dir = Path(template_path)
-        if not template_dir.exists():
-            raise FileNotFoundError(f"Директория с шаблонами не найдена: {template_path}")
-        
-        return Environment(loader=FileSystemLoader(str(template_dir)))
+    logger.info(f"Загрузка шаблона из: {template_path}")
     
-    def generate(self, chunks: List[Chunk], template_path: str, output_path: str) -> None:
-        """
-        Генерация HTML-отчета из списка чанков.
+    try:
+        # Создаем окружение Jinja2 с загрузчиком файловой системы
+        template_dir = template_file.parent
+        env = Environment(loader=FileSystemLoader(str(template_dir)))
         
-        Метод загружает Jinja2 шаблон из указанного пути, 
-        рендерит его с переданным списком чанков и сохраняет 
-        результат в файл.
+        # Загружаем шаблон
+        template_name = template_file.name
+        template = env.get_template(template_name)
         
-        Args:
-            chunks: Список чанков для включения в отчет
-            template_path: Путь к директории с шаблонами
-            output_path: Путь для сохранения сгенерированного HTML-файла
+        logger.info(f"Шаблон '{template_name}' успешно загружен")
+        
+    except jinja2.TemplateError as e:
+        error_msg = f"Ошибка при загрузке шаблона: {e}"
+        logger.error(error_msg)
+        raise jinja2.TemplateError(error_msg) from e
+    
+    # Подготавливаем контекст для рендеринга
+    context = {'chunks': chunks}
+    logger.info(f"Подготовлен контекст с {len(chunks)} чанками")
+    
+    try:
+        # Рендерим шаблон
+        rendered_html = template.render(context)
+        logger.info("Шаблон успешно отрендерен")
+        
+    except jinja2.TemplateError as e:
+        error_msg = f"Ошибка при рендеринге шаблона: {e}"
+        logger.error(error_msg)
+        raise jinja2.TemplateError(error_msg) from e
+    
+    # Создаем директорию для выходного файла если она не существует
+    output_file = Path(output_path)
+    output_dir = output_file.parent
+    
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Директория для выходного файла готова: {output_dir}")
+        
+    except OSError as e:
+        error_msg = f"Не удалось создать директорию {output_dir}: {e}"
+        logger.error(error_msg)
+        raise OSError(error_msg) from e
+    
+    # Записываем отрендеренный HTML в файл
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(rendered_html)
             
-        Raises:
-            FileNotFoundError: Если шаблон не найден
-            Exception: При ошибках рендеринга или сохранения файла
-        """
-        try:
-            # Настройка окружения Jinja2
-            if self.jinja_env is None:
-                self.jinja_env = self._setup_jinja_environment(template_path)
-            
-            # Загрузка шаблона report_template.html
-            template_name = "report_template.html"
-            template = self.jinja_env.get_template(template_name)
-            
-            # Подготовка данных для рендеринга
-            render_data: Dict[str, Any] = {
-                "chunks": chunks,
-                "total_chunks": len(chunks),
-                "generated_at": "Текущее время"  # Можно добавить datetime.now()
-            }
-            
-            # Рендеринг шаблона
-            rendered_html = template.render(**render_data)
-            
-            # Создание директории для выходного файла, если она не существует
-            output_file = Path(output_path)
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Сохранение результата
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(rendered_html)
-            
-            print(f"Отчет успешно сгенерирован: {output_path}")
-            print(f"Количество обработанных чанков: {len(chunks)}")
-            
-        except FileNotFoundError as e:
-            print(f"Ошибка: Шаблон не найден - {e}")
-            raise
-        except Exception as e:
-            print(f"Ошибка при генерации отчета: {e}")
-            raise
+        logger.info(f"HTML-отчет успешно сохранен: {output_path}")
+        logger.info(f"Размер файла: {len(rendered_html):,} символов")
+        
+    except PermissionError as e:
+        error_msg = f"Нет прав на запись в файл {output_path}: {e}"
+        logger.error(error_msg)
+        raise PermissionError(error_msg) from e
+        
+    except OSError as e:
+        error_msg = f"Ошибка при записи файла {output_path}: {e}"
+        logger.error(error_msg)
+        raise OSError(error_msg) from e
