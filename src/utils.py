@@ -12,22 +12,22 @@ from typing import Pattern
 
 # Паттерны для поиска заголовков глав
 # Паттерн для стандартного формата: 'Глава 1', 'Глава 2', 'Глава 10'
-CHAPTER_PATTERN_1 = re.compile(r'^\s*Глава\s+\d+\s*$', re.IGNORECASE | re.MULTILINE)
+CHAPTER_PATTERN_1 = re.compile(r'^\s*Глава\s+\d+', re.IGNORECASE | re.MULTILINE)
 
 # Паттерн для формата с точкой: 'Глава 1.', 'Глава 2.'
-CHAPTER_PATTERN_2 = re.compile(r'^\s*Глава\s+\d+\.?\s*$', re.IGNORECASE | re.MULTILINE)
+CHAPTER_PATTERN_2 = re.compile(r'^\s*Глава\s+\d+\.?', re.IGNORECASE | re.MULTILINE)
 
 # Паттерн для формата 'ГЛАВА 1' (заглавными буквами)
-CHAPTER_PATTERN_3 = re.compile(r'^\s*ГЛАВА\s+\d+\s*$', re.MULTILINE)
+CHAPTER_PATTERN_3 = re.compile(r'^\s*ГЛАВА\s+\d+', re.MULTILINE)
 
 # Паттерн для формата '1. Глава', '2. Глава'
-CHAPTER_PATTERN_4 = re.compile(r'^\s*\d+\.\s*Глава\s*$', re.IGNORECASE | re.MULTILINE)
+CHAPTER_PATTERN_4 = re.compile(r'^\s*\d+\.\s*Глава', re.IGNORECASE | re.MULTILINE)
 
 # Паттерн для формата с римскими цифрами: 'Глава I', 'Глава II'
-CHAPTER_PATTERN_5 = re.compile(r'^\s*Глава\s+[IVX]+\s*$', re.IGNORECASE | re.MULTILINE)
+CHAPTER_PATTERN_5 = re.compile(r'^\s*Глава\s+[IVX]+', re.IGNORECASE | re.MULTILINE)
 
 # Паттерн для формата 'Раздел 1', 'Раздел 2' (альтернативное название главы)
-CHAPTER_PATTERN_6 = re.compile(r'^\s*Раздел\s+\d+\s*$', re.IGNORECASE | re.MULTILINE)
+CHAPTER_PATTERN_6 = re.compile(r'^\s*Раздел\s+\d+', re.IGNORECASE | re.MULTILINE)
 
 CHAPTER_PATTERNS: list[Pattern[str]] = [
     CHAPTER_PATTERN_1,
@@ -40,22 +40,22 @@ CHAPTER_PATTERNS: list[Pattern[str]] = [
 
 # Паттерны для поиска заголовков разделов
 # Паттерн для стандартного формата: '1.1.', '1.2.', '10.15.'
-SECTION_PATTERN_1 = re.compile(r'^\s*\d+\.\d+\.?\s*$', re.MULTILINE)
+SECTION_PATTERN_1 = re.compile(r'^\s*\d+\.\d+\.?', re.MULTILINE)
 
 # Паттерн для формата: '1.1', '2.3', '10.15' (без завершающей точки)
-SECTION_PATTERN_2 = re.compile(r'^\s*\d+\.\d+\s*$', re.MULTILINE)
+SECTION_PATTERN_2 = re.compile(r'^\s*\d+\.\d+', re.MULTILINE)
 
 # Паттерн для трехуровневой нумерации: '1.1.1.', '2.3.5.'
-SECTION_PATTERN_3 = re.compile(r'^\s*\d+\.\d+\.\d+\.?\s*$', re.MULTILINE)
+SECTION_PATTERN_3 = re.compile(r'^\s*\d+\.\d+\.\d+\.?', re.MULTILINE)
 
 # Паттерн для формата с буквами: '1.1.a', '2.3.b'
-SECTION_PATTERN_4 = re.compile(r'^\s*\d+\.\d+\.[a-z]\s*$', re.IGNORECASE | re.MULTILINE)
+SECTION_PATTERN_4 = re.compile(r'^\s*\d+\.\d+\.[a-z]', re.IGNORECASE | re.MULTILINE)
 
 # Паттерн для формата 'Раздел 1.1', 'Раздел 2.3'
-SECTION_PATTERN_5 = re.compile(r'^\s*Раздел\s+\d+\.\d+\s*$', re.IGNORECASE | re.MULTILINE)
+SECTION_PATTERN_5 = re.compile(r'^\s*Раздел\s+\d+\.\d+', re.IGNORECASE | re.MULTILINE)
 
 # Паттерн для формата 'Подраздел 1.1', 'Подраздел 2.3'
-SECTION_PATTERN_6 = re.compile(r'^\s*Подраздел\s+\d+\.\d+\s*$', re.IGNORECASE | re.MULTILINE)
+SECTION_PATTERN_6 = re.compile(r'^\s*Подраздел\s+\d+\.\d+', re.IGNORECASE | re.MULTILINE)
 
 SECTION_PATTERNS: list[Pattern[str]] = [
     SECTION_PATTERN_1,
