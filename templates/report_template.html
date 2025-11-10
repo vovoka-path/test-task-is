@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчет по обработке документа</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin:0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .table-container {
+            padding: 30px;
+        }
+        
+        .table-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #495057;
+            font-weight: 400;
+        }
+        
+        .chunks-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+        
+        .chunks-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.95em;
+            letter-spacing: 0.5px;
+        }
+        
+        .chunks-table td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+        
+        .chunks-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .chunk-id {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.9em;
+            display: inline-block;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        .metadata-cell {
+            max-width: 300px;
+        }
+        
+        .metadata-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            font-size: 0.9em;
+        }
+        
+        .metadata-key {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .metadata-value {
+            color: #6c757d;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .content-cell {
+            max-width: 500px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+        
+        .content-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            font-style: italic;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .content-full {
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #6c757d;
+        }
+        
+        .empty-state h3 {
+            margin: 0 0 10px 0;
+            font-weight: 400;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9em;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 0;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .table-container {
+                padding: 20px 15px;
+            }
+            
+            .chunks-table {
+                font-size: 0.9em;
+            }
+            
+            .chunks-table th,
+            .chunks-table td {
+                padding: 8px 8px;
+            }
+            
+            .metadata-cell {
+                max-width: 200px;
+            }
+            
+            .content-cell {
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Отчет по обработке документа</h1>
+            <p>Автоматическое разбиение документа на логические фрагменты (чанки)</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number">{{ chunks|length }}</span>
+                    <div class="stat-label">Всего чанков</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{{ (chunks|length * 100 / 100)|round(1) }}%</span>
+                    <div class="stat-label">Покрытие документа</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{{ ((chunks|map(attribute='content')|join(' ')|length / 1000)|round(1)) if chunks else 0 }}K</span>
+                    <div class="stat-label">Символов обработано</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            {% if chunks %}
+                <h2 class="table-title">Содержимое документа по фрагментам</h2>
+                
+                <table class="chunks-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">ID</th>
+                            <th style="width: 350px;">Метаданные</th>
+                            <th>Текст чанка</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for chunk in chunks %}
+                            <tr>
+                                <td>
+                                    <span class="chunk-id">{{ loop.index }}</span>
+                                </td>
+                                
+                                <td class="metadata-cell">
+                                    {% if chunk.metadata %}
+                                        {% for key, value in chunk.metadata.items() %}
+                                            <div class="metadata-item">
+                                                <span class="metadata-key">{{ key }}:</span>
+                                                <span class="metadata-value">{{ value }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="metadata-item">
+                                            <span class="metadata-key">Метаданные:</span>
+                                            <span class="metadata-value">отсутствуют</span>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="content-cell">
+                                    {% if chunk.content %}
+                                        {% if chunk.content|length > 200 %}
+                                            <div class="content-preview">
+                                                {{ chunk.content[:200] }}...
+                                            </div>
+                                            <details>
+                                                <summary style="cursor: pointer; color: #667eea; font-weight: 500;">Показать полный текст</summary>
+                                                <div class="content-full">{{ chunk.content }}</div>
+                                            </details>
+                                        {% else %}
+                                            <div class="content-full">{{ chunk.content }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="empty-state">
+                                            <h3>Пустой чанк</h3>
+                                            <p>Данный фрагмент не содержит текстового содержимого</p>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <h2 class="table-title">Нет данных для отображения</h2>
+                    <p>В документе не было найдено текстового содержимого для обработки</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="footer">
+            <p>Отчет сгенерирован автоматически • Обработано {{ chunks|length }} фрагментов документа</p>
+        </div>
+    </div>
+</body>
+</html>
