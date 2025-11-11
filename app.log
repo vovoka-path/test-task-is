@@ -1,0 +1,34 @@
+2025-11-11 02:15:34,217 - INFO - Модуль пайплайна успешно импортирован
+2025-11-11 03:21:19,784 - ERROR - Ошибка в пайплайне: Pandoc died with exitcode "63" during conversion: couldn't unpack docx container: not enough bytes
+Traceback (most recent call last):
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\main.py", line 59, in <module>
+    chunks: List[Chunk] = run_pipeline(str(input_file_path))
+                          ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\src\pipeline.py", line 30, in run_pipeline
+    markdown_content: str = convert_docx_to_markdown(docx_path)
+                            ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\src\processing\phase_1_converter.py", line 25, in convert_docx_to_markdown
+    markdown_text = pypandoc.convert_file(file_path, 'markdown')
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\.venv\Lib\site-packages\pypandoc\__init__.py", line 200, in convert_file
+    return _convert_input(discovered_source_files, format, 'path', to, extra_args=extra_args,
+                      outputfile=outputfile, filters=filters,
+                      verify_format=verify_format, sandbox=sandbox,
+                      cworkdir=cworkdir)
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\.venv\Lib\site-packages\pypandoc\__init__.py", line 467, in _convert_input
+    raise RuntimeError(
+        'Pandoc died with exitcode "%s" during conversion: %s' % (p.returncode, stderr)
+    )
+RuntimeError: Pandoc died with exitcode "63" during conversion: couldn't unpack docx container: not enough bytes
+
+2025-11-11 03:23:09,301 - ERROR - Ошибка в пайплайне: 'NoneType' object has no attribute 'strip'
+Traceback (most recent call last):
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\main.py", line 59, in <module>
+    chunks: List[Chunk] = run_pipeline(str(input_file_path))
+                          ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\src\pipeline.py", line 33, in run_pipeline
+    initial_chunks: List[Chunk] = parse_markdown_to_chunks(markdown_content)
+                                  ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\src\processing\phase_2_parser.py", line 130, in parse_markdown_to_chunks
+    text_blocks: List[str] = [block.strip() for block in raw_blocks if block.strip()]
+                                                                       ^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'strip'
