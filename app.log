@@ -32,3 +32,12 @@ Traceback (most recent call last):
     text_blocks: List[str] = [block.strip() for block in raw_blocks if block.strip()]
                                                                        ^^^^^^^^^^^
 AttributeError: 'NoneType' object has no attribute 'strip'
+2025-11-11 05:04:30,402 - ERROR - Ошибка в пайплайне: expected an indented block after 'else' statement on line 251 (phase_2_parser.py, line 253)
+Traceback (most recent call last):
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\main.py", line 53, in <module>
+    from src.pipeline import run_pipeline
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\src\pipeline.py", line 9, in <module>
+    from src.processing.phase_2_parser import parse_markdown_to_chunks
+  File "D:\2-DEVELOP\_PYTHON\test-task-is\src\processing\phase_2_parser.py", line 253
+    else:
+IndentationError: expected an indented block after 'else' statement on line 251

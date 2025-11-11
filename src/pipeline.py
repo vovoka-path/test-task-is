@@ -28,12 +28,21 @@ def run_pipeline(docx_path: str) -> List[Chunk]:
     """
     # Шаг 1: Конвертация DOCX в Markdown
     doc_title, markdown_content = convert_docx_to_markdown(docx_path)
+    print(f"[PIPELINE] Фаза 1 завершена. Название документа: {doc_title}")
     
     # Шаг 2: Парсинг Markdown и создание структурированных чанков
     initial_chunks: List[Chunk] = parse_markdown_to_chunks(markdown_content, doc_title)
+    print(f"[PIPELINE] Фаза 2 завершена. Создано чанков: {len(initial_chunks)}")
+    
+    # Показываем первые несколько чанков для диагностики
+    if initial_chunks:
+        print("[PIPELINE] Первые 5 чанков после фазы 2:")
+        for i, chunk in enumerate(initial_chunks[:5]):
+            print(f"  {i+1}. {chunk.metadata.clause_number}: {chunk.page_content[:50]}...")
     
     # Шаг 3: Обогащение чанков перекрестными ссылками
     enriched_chunks: List[Chunk] = enrich_chunks_with_cross_references(initial_chunks)
+    print(f"[PIPELINE] Фаза 3 завершена. Финальное количество чанков: {len(enriched_chunks)}")
     
     # Возврат финального результата
     return enriched_chunks

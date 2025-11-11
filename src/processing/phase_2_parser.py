@@ -4,7 +4,7 @@
 """
 
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 from src.schemas import Chunk, ChunkMetadata
 
 def extract_document_titles(markdown_text: str) -> Tuple[str, str]:
@@ -139,38 +139,251 @@ def parse_markdown_to_chunks(markdown_text: str, document_title: str = "") -> Li
                     section_headers[section_num] = f"{section_num}. {section_title.strip()}"
     
     # 3. Разделение на пункты и определение их принадлежности к разделам
-    # Ищем все пункты в формате "X.Y. текст" или "X.Y.Z. текст"
-    clause_pattern = r'(\d+)\.(\d+(?:\.\d+)*)\.\s+(.+?)(?=\n\s*\d+\.\d+(?:\.\d+)*\.|\n\s*#|\n\s*Глава|\Z)'
-    clause_matches = re.findall(clause_pattern, markdown_text, re.DOTALL)
-    
+    # Обрабатываем все форматы нумерации в документе
+
+    def get_line_num_from_pos(pos: int, text: str) -> int:
+        lines = text.split('\n')
+        current_pos = 0
+        for i, line in enumerate(lines):
+            line_len = len(line) + 1  # +1 for \n
+            if current_pos <= pos < current_pos + line_len:
+                return i
+            current_pos += line_len
+        return len(lines) - 1
+
+    def get_chapter_num_by_position(line_num: int, chapter_boundaries: Dict[str, Dict[str, Any]]) -> str:
+        chapter_num = None
+        for ch_num, ch_info in sorted(chapter_boundaries.items(), key=lambda x: x[1]['start_line'], reverse=True):
+            if ch_info['start_line'] <= line_num:
+                chapter_num = ch_num
+                break
+        return chapter_num or '1'
+
     chunks: List[Chunk] = []
-    
-    for section_num, clause_num, clause_content in clause_matches:
-        # Определяем заголовок раздела
-        current_section_title = section_headers.get(section_num, f"{section_num}. Раздел {section_num}")
-        
-        # Очищаем содержимое от лишних переносов и пробелов
-        content = re.sub(r'\n+', ' ', clause_content.strip())
-        
-        # Создаем полный номер пункта
-        full_clause_number = f"{section_num}.{clause_num}"
-        
-        # Создаем метаданные
-        metadata = ChunkMetadata(
-            source_document_title=full_title,
-            short_document_title=short_title,
-            clause_number=full_clause_number,
-            parent_section_title=current_section_title,
-            hierarchy=[short_title, current_section_title, full_clause_number],
+    processed_clauses: set[str] = set()  # Для избежания дублирования
+
+    # Определяем границы глав для правильной привязки пунктов к разделам
+    chapter_boundaries: Dict[str, Dict[str, Any]] = {}
+
+    # Находим границы глав
+    lines = markdown_text.split('\n')
+    for i, line in enumerate(lines):
+        line = line.strip()
+        # Ищем заголовки глав
+        chapter_match = re.match(r'Глава\s+(\d+)\.\s+(.+)', line)
+        if chapter_match:
+            chapter_num = chapter_match.group(1)
+            chapter_title = chapter_match.group(2).strip()
+            chapter_boundaries[chapter_num] = {
+                'title': f"{chapter_num}. {chapter_title}",
+                'start_line': i
+            }
+
+    # Собираем определения терминов для объединения в пункт 1.5
+    term_definitions: dict[str, str] = {}
+
+    # 3.1. Пункты формата X.Y.Z. (например, 3.5.17, 3.8.1)
+    clause_pattern_xyz = r'\s*(\d+)\.(\d+)\.(\d+)\.\s+(.+?)(?=\n\s*\d+\.\d+\.\d+\.|\n\s*#|\n\s*Глава|\Z)'
+    xyz_matches = list(re.finditer(clause_pattern_xyz, markdown_text, re.DOTALL))
+
+    for match in xyz_matches:
+        section_num = match.group(1)
+        subsection_num = match.group(2)
+        clause_num = match.group(3)
+        clause_content = match.group(4)
+        start_pos = match.start()
+        line_num = get_line_num_from_pos(start_pos, markdown_text)
+        chapter_num = get_chapter_num_by_position(line_num, chapter_boundaries)
+
+        if section_num in section_headers:
+            full_clause_number = f"{section_num}.{subsection_num}.{clause_num}"
+        else:
+            full_clause_number = f"{chapter_num}.{section_num}.{subsection_num}.{clause_num}"
+
+        if full_clause_number not in processed_clauses:
+            current_section_title = section_headers.get(chapter_num, f"{chapter_num}. Раздел {chapter_num}")
+            content = re.sub(r'\n+', ' ', clause_content.strip())
+
+            metadata = ChunkMetadata(
+                source_document_title=full_title,
+                short_document_title=short_title,
+                clause_number=full_clause_number,
+                parent_section_title=current_section_title,
+                hierarchy=[short_title, current_section_title, full_clause_number],
+                cross_references={}
+            )
+
+            chunk = Chunk(page_content=content, metadata=metadata)
+            chunks.append(chunk)
+            processed_clauses.add(full_clause_number)
+
+    # 3.2. Пункты формата X.Y. (например, 3.5, 3.8, 5.23)
+    clause_pattern_xy = r'\s*(\d+)\.(\d+)\.\s+(.+?)(?=\n\s*\d+\.\d+\.|\n\s*#|\n\s*Глава|\Z)'
+    xy_matches = list(re.finditer(clause_pattern_xy, markdown_text, re.DOTALL))
+
+    for match in xy_matches:
+        section_num = match.group(1)
+        clause_num = match.group(2)
+        clause_content = match.group(3)
+        start_pos = match.start()
+        line_num = get_line_num_from_pos(start_pos, markdown_text)
+        chapter_num = get_chapter_num_by_position(line_num, chapter_boundaries)
+
+        if section_num in section_headers:
+            full_clause_number = f"{section_num}.{clause_num}"
+        else:
+            full_clause_number = f"{chapter_num}.{section_num}.{clause_num}"
+
+        if full_clause_number not in processed_clauses:
+            current_section_title = section_headers.get(chapter_num, f"{chapter_num}. Раздел {chapter_num}")
+            content = re.sub(r'\n+', ' ', clause_content.strip())
+
+            metadata = ChunkMetadata(
+                source_document_title=full_title,
+                short_document_title=short_title,
+                clause_number=full_clause_number,
+                parent_section_title=current_section_title,
+                hierarchy=[short_title, current_section_title, full_clause_number],
+                cross_references={}
+            )
+
+            chunk = Chunk(page_content=content, metadata=metadata)
+            chunks.append(chunk)
+            processed_clauses.add(full_clause_number)
+
+    # 3.3. Пункты формата "X.Y." (например, "1.1.", "1.2.", "3.4.")
+    # Формат без пробела после точки номера
+    clause_pattern_dotted = r'\s*(\d+)\.(\d+)\.(.+?)(?=\n\s*\d+\.\d+\.|\n\s*#|\n\s*Глава|\Z)'
+    dotted_matches = list(re.finditer(clause_pattern_dotted, markdown_text, re.DOTALL))
+
+    for match in dotted_matches:
+        section_num = match.group(1)
+        clause_num = match.group(2)
+        clause_content = match.group(3)
+        start_pos = match.start()
+        line_num = get_line_num_from_pos(start_pos, markdown_text)
+        chapter_num = get_chapter_num_by_position(line_num, chapter_boundaries)
+
+        if section_num in section_headers:
+            full_clause_number = f"{section_num}.{clause_num}"
+        else:
+            full_clause_number = f"{chapter_num}.{section_num}.{clause_num}"
+
+        if full_clause_number not in processed_clauses:
+            current_section_title = section_headers.get(chapter_num, f"{chapter_num}. Раздел {chapter_num}")
+            content = re.sub(r'\n+', ' ', clause_content.strip())
+
+            metadata = ChunkMetadata(
+                source_document_title=full_title,
+                short_document_title=short_title,
+                clause_number=full_clause_number,
+                parent_section_title=current_section_title,
+                hierarchy=[short_title, current_section_title, full_clause_number],
+                cross_references={}
+            )
+
+            chunk = Chunk(page_content=content, metadata=metadata)
+            chunks.append(chunk)
+            processed_clauses.add(full_clause_number)
+
+    # 3.4. Простые номера разделов (например, 1., 2., 3.)
+    # Ищем разделы, которые содержат текст (не только заголовки)
+    section_pattern = r'\s*(\d+)\.\s+(.+?)(?=\n\s*\d+\.\s+|\n\s*#|\n\s*Глава|\Z)'
+    section_matches = list(re.finditer(section_pattern, markdown_text, re.DOTALL))
+
+    for match in section_matches:
+        section_num = match.group(1)
+        section_content = match.group(2)
+        start_pos = match.start()
+        line_num = get_line_num_from_pos(start_pos, markdown_text)
+        chapter_num = get_chapter_num_by_position(line_num, chapter_boundaries)
+
+        if section_num in section_headers:
+            full_clause_number = section_num
+        else:
+            full_clause_number = f"{chapter_num}.{section_num}"
+
+        # Проверяем, что это не заголовок раздела (содержит значимый текст)
+        if len(section_content.strip()) > 5:  # Значительно снижен порог для захвата всех пунктов
+            current_section_title = section_headers.get(chapter_num, f"{chapter_num}. Раздел {chapter_num}")
+
+            if full_clause_number not in processed_clauses:
+                content = re.sub(r'\n+', ' ', section_content.strip())
+
+                metadata = ChunkMetadata(
+                    source_document_title=full_title,
+                    short_document_title=short_title,
+                    clause_number=full_clause_number,
+                    parent_section_title=current_section_title,
+                    hierarchy=[short_title, current_section_title, full_clause_number],
+                    cross_references={}
+                )
+
+                chunk = Chunk(page_content=content, metadata=metadata)
+                chunks.append(chunk)
+                processed_clauses.add(full_clause_number)
+
+    # 4. Постобработка: разбиение чанков на подпункты
+    processed_chunks = []
+    for chunk in chunks:
+        sub_chunks = split_chunk_into_subclauses(chunk)
+        processed_chunks.extend(sub_chunks)
+
+    return processed_chunks
+
+
+def split_chunk_into_subclauses(chunk: Chunk) -> List[Chunk]:
+    """
+    Разбивает чанк на подпункты, если они присутствуют в содержимом.
+
+    Args:
+        chunk: Исходный чанк для разбивки
+
+    Returns:
+        Список чанков: либо исходный чанк, либо разбитые на подпункты
+    """
+    content = chunk.page_content
+    metadata = chunk.metadata
+
+    # Ищем подпункты в формате X. текст (простые номера подпунктов)
+    subclause_pattern = r'(\d+)\.\s+(.+?)(?=\d+\.\s+|\Z)'
+    subclause_matches = list(re.finditer(subclause_pattern, content, re.DOTALL))
+
+    if not subclause_matches:
+        # Если подпунктов нет, возвращаем исходный чанк
+        return [chunk]
+
+    # Разбиваем на подпункты
+    sub_chunks = []
+    processed_positions = set()
+
+    for match in subclause_matches:
+        subclause_num = match.group(1)
+        subclause_content = match.group(2).strip()
+
+        # Создаем номер подпункта на основе номера текущего чанка
+        subclause_number = f"{metadata.clause_number}.{subclause_num}"
+
+        # Создаем новый чанк для подпункта
+        new_metadata = ChunkMetadata(
+            source_document_title=metadata.source_document_title,
+            short_document_title=metadata.short_document_title,
+            clause_number=subclause_number,
+            parent_section_title=metadata.parent_section_title,
+            hierarchy=[metadata.short_document_title, metadata.parent_section_title, subclause_number],
             cross_references={}
         )
-        
-        # Создаем чанк
-        chunk = Chunk(
-            page_content=content,
-            metadata=metadata
-        )
-        
-        chunks.append(chunk)
-    
-    return chunks
+
+        # Очищаем текст от лишних пробелов и переносов строк
+        clean_content = re.sub(r'\n+', ' ', subclause_content)
+
+        new_chunk = Chunk(page_content=clean_content, metadata=new_metadata)
+        sub_chunks.append(new_chunk)
+        processed_positions.add(match.start())
+
+    # Если подпункты найдены, возвращаем их вместо исходного чанка
+    if sub_chunks:
+        return sub_chunks
+    else:
+        # Если подпункты не найдены, возвращаем исходный чанк
+        return [chunk]

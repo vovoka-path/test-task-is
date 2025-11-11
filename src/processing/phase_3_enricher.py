@@ -39,20 +39,19 @@ def enrich_chunks_with_cross_references(chunks: List[Chunk]) -> List[Chunk]:
         # Ищем все номера пунктов, на которые ссылается текущий чанк
         # CROSS_REFERENCE_PATTERN ищет упоминания вида "пункт 1.2", "пункта 1.2.3" и т.д.
         found_references = re.findall(CROSS_REFERENCE_PATTERN, chunk.page_content)
-        
+
         # Обрабатываем каждую найденную ссылку
-        for reference_tuple in found_references:
-            # Извлекаем номер пункта из первой группы захвата
-            reference_number = reference_tuple[0]
-            
+        for reference_number in found_references:
+            # reference_number уже является строкой с номером пункта (например, "3.1.9")
+
             # Проверяем, что чанк не ссылается сам на себя
             if reference_number != chunk.metadata.clause_number:
-                # Ищем соответствующий текст в карте пунктов
-                if reference_number in clause_map:
-                    referenced_text = clause_map[reference_number]
-                    # Создаем форматированную строку с контекстом ссылки
-                    context_string = f"\n\n[КОНТЕКСТ ССЫЛКИ НА ПУНКТ {reference_number}]:\n{referenced_text}"
-                    # Добавляем контекст в конец содержимого чанка
-                    chunk.page_content += context_string
+                # Извлекаем текст ссылки из исходного текста
+                link_pattern = re.compile(rf'\b(?:пункт|подпункт)[а-я]{0,2}\s+{re.escape(reference_number)}\b')
+                link_match = re.search(link_pattern, chunk.page_content)
+                link_text = link_match.group() if link_match else reference_number
+
+                # Добавляем запись в cross_references с текстом ссылки
+                chunk.metadata.cross_references[reference_number] = link_text
         
     return chunks

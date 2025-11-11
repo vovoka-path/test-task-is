@@ -68,11 +68,11 @@ if __name__ == "__main__":
         print(f"✅ Пайплайн успешно завершен. Получено чанков: {len(chunks)}")
         print("=" * 60)
         
-        # Вывод информации по первым 3 чанкам для ручной проверки
-        print("📋 ПЕРВЫЕ 3 ЧАНКА ДЛЯ ПРОВЕРКИ:")
+        # Вывод информации по первым 5 чанкам для ручной проверки
+        print("📋 ПЕРВЫЕ 5 ЧАНКОВ ДЛЯ ПРОВЕРКИ:")
         print("=" * 60)
         
-        for i, chunk in enumerate(chunks[:3]):
+        for i, chunk in enumerate(chunks[:5]):
             print(f"\n--- Чанк №{i+1} ---")
             print(f"Содержимое page_content:")
             print(f"{chunk.page_content}")
@@ -81,10 +81,25 @@ if __name__ == "__main__":
                 print(f"  {key}: {value}")
             print("-" * 40)
         
+        # Показываем статистику по разделам
+        print("\n📊 СТАТИСТИКА ПО РАЗДЕЛАМ:")
+        print("=" * 60)
+        section_counts = {}
+        for chunk in chunks:
+            clause_num = chunk.metadata.clause_number
+            if '.' in clause_num:
+                section = clause_num.split('.')[0]
+            else:
+                section = clause_num
+            section_counts[section] = section_counts.get(section, 0) + 1
+        
+        for section in sorted(section_counts.keys(), key=int):
+            print(f"Раздел {section}: {section_counts[section]} чанков")
+        
         # Сохранение чанков в JSON файл
         output_file_path = Path(output_file_path_str)
         save_chunks_to_json(chunks, output_file_path)
-        print(f"💾 Результаты сохранены в файл: {output_file_path}")
+        print(f"\n💾 Результаты сохранены в файл: {output_file_path}")
             
     except Exception as e:
         print(f"❌ Ошибка при выполнении пайплайна: {e}")
